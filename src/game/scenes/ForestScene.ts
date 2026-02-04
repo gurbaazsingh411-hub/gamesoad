@@ -22,6 +22,7 @@ export class ForestScene extends Phaser.Scene {
   private slashEffect?: Phaser.GameObjects.Sprite;
   private bossDefeated = false;
   private introShown = false;
+  private virtualInput = { up: false, down: false, left: false, right: false, attack: false };
 
   constructor() {
     super({ key: 'ForestScene' });
@@ -81,7 +82,7 @@ export class ForestScene extends Phaser.Scene {
 
   createTrees() {
     this.trees = this.add.group();
-    
+
     // Add trees around the edges and scattered
     const treePositions = [
       // Top row
@@ -157,6 +158,16 @@ export class ForestScene extends Phaser.Scene {
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.attackKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // Virtual input listeners
+    window.addEventListener('game-input', (e: any) => {
+      const { action, pressed } = e.detail;
+      if (action === 'up') this.virtualInput.up = pressed;
+      if (action === 'down') this.virtualInput.down = pressed;
+      if (action === 'left') this.virtualInput.left = pressed;
+      if (action === 'right') this.virtualInput.right = pressed;
+      if (action === 'attack') this.virtualInput.attack = pressed;
+    });
   }
 
   setupCollisions() {
@@ -177,17 +188,17 @@ export class ForestScene extends Phaser.Scene {
     let velocityX = 0;
     let velocityY = 0;
 
-    if (this.cursors.left.isDown || this.wasd.A.isDown) {
+    if (this.cursors.left.isDown || this.wasd.A.isDown || this.virtualInput.left) {
       velocityX = -1;
       this.soad.setFlipX(true);
-    } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
+    } else if (this.cursors.right.isDown || this.wasd.D.isDown || this.virtualInput.right) {
       velocityX = 1;
       this.soad.setFlipX(false);
     }
 
-    if (this.cursors.up.isDown || this.wasd.W.isDown) {
+    if (this.cursors.up.isDown || this.wasd.W.isDown || this.virtualInput.up) {
       velocityY = -1;
-    } else if (this.cursors.down.isDown || this.wasd.S.isDown) {
+    } else if (this.cursors.down.isDown || this.wasd.S.isDown || this.virtualInput.down) {
       velocityY = 1;
     }
 
@@ -211,7 +222,9 @@ export class ForestScene extends Phaser.Scene {
   }
 
   handleAttack() {
-    if (Phaser.Input.Keyboard.JustDown(this.attackKey) && !this.attackCooldown) {
+    const attackPressed = Phaser.Input.Keyboard.JustDown(this.attackKey) || (this.virtualInput.attack && !this.attackCooldown);
+
+    if (attackPressed && !this.attackCooldown) {
       this.isAttacking = true;
       this.attackCooldown = true;
 
@@ -243,7 +256,7 @@ export class ForestScene extends Phaser.Scene {
       this.enemies.getChildren().forEach((enemy) => {
         const e = enemy as Enemy;
         const distance = Phaser.Math.Distance.Between(this.soad.x, this.soad.y, e.x, e.y);
-        
+
         if (distance < ATTACK_RANGE + (e.isBoss ? 30 : 0)) {
           this.damageEnemy(e, 25);
         }
@@ -298,7 +311,7 @@ export class ForestScene extends Phaser.Scene {
           }
         });
       }
-      
+
       // Death animation
       this.tweens.add({
         targets: enemy,
@@ -316,21 +329,21 @@ export class ForestScene extends Phaser.Scene {
   updateEnemies() {
     this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy;
-      
+
       // Simple chase AI
       const distanceToSoad = Phaser.Math.Distance.Between(e.x, e.y, this.soad.x, this.soad.y);
       const distanceToGurbaaz = Phaser.Math.Distance.Between(e.x, e.y, this.gurbaaz.x, this.gurbaaz.y);
-      
+
       let targetX = this.soad.x;
       let targetY = this.soad.y;
-      
+
       if (distanceToGurbaaz < distanceToSoad) {
         targetX = this.gurbaaz.x;
         targetY = this.gurbaaz.y;
       }
 
       const distance = Math.min(distanceToSoad, distanceToGurbaaz);
-      
+
       if (distance < 200 && distance > 30) {
         const angle = Phaser.Math.Angle.Between(e.x, e.y, targetX, targetY);
         const speed = ENEMY_SPEED * (this.game.loop.delta / 1000);
@@ -375,7 +388,7 @@ export class ForestScene extends Phaser.Scene {
   updateGurbaaz() {
     // Gurbaaz follows Soad with some delay
     const distance = Phaser.Math.Distance.Between(this.gurbaaz.x, this.gurbaaz.y, this.soad.x, this.soad.y);
-    
+
     if (distance > 50) {
       const angle = Phaser.Math.Angle.Between(this.gurbaaz.x, this.gurbaaz.y, this.soad.x, this.soad.y);
       const speed = PLAYER_SPEED * 0.8 * (this.game.loop.delta / 1000);

@@ -29,6 +29,7 @@ export class MountainsScene extends Phaser.Scene {
   private slashEffect?: Phaser.GameObjects.Sprite;
   private bossDefeated = false;
   private introShown = false;
+  private virtualInput = { up: false, down: false, left: false, right: false, attack: false };
 
   constructor() {
     super({ key: 'MountainsScene' });
@@ -195,7 +196,7 @@ export class MountainsScene extends Phaser.Scene {
 
   createRocks() {
     this.rocks = this.add.group();
-    
+
     const rockPositions = [
       { x: 60, y: 80 }, { x: 200, y: 60 }, { x: 350, y: 80 },
       { x: 500, y: 50 }, { x: 650, y: 70 }, { x: 750, y: 90 },
@@ -309,6 +310,16 @@ export class MountainsScene extends Phaser.Scene {
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.attackKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // Virtual input listeners
+    window.addEventListener('game-input', (e: any) => {
+      const { action, pressed } = e.detail;
+      if (action === 'up') this.virtualInput.up = pressed;
+      if (action === 'down') this.virtualInput.down = pressed;
+      if (action === 'left') this.virtualInput.left = pressed;
+      if (action === 'right') this.virtualInput.right = pressed;
+      if (action === 'attack') this.virtualInput.attack = pressed;
+    });
   }
 
   update() {
@@ -325,17 +336,17 @@ export class MountainsScene extends Phaser.Scene {
     let velocityX = 0;
     let velocityY = 0;
 
-    if (this.cursors.left.isDown || this.wasd.A.isDown) {
+    if (this.cursors.left.isDown || this.wasd.A.isDown || this.virtualInput.left) {
       velocityX = -1;
       this.soad.setFlipX(true);
-    } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
+    } else if (this.cursors.right.isDown || this.wasd.D.isDown || this.virtualInput.right) {
       velocityX = 1;
       this.soad.setFlipX(false);
     }
 
-    if (this.cursors.up.isDown || this.wasd.W.isDown) {
+    if (this.cursors.up.isDown || this.wasd.W.isDown || this.virtualInput.up) {
       velocityY = -1;
-    } else if (this.cursors.down.isDown || this.wasd.S.isDown) {
+    } else if (this.cursors.down.isDown || this.wasd.S.isDown || this.virtualInput.down) {
       velocityY = 1;
     }
 
@@ -357,7 +368,9 @@ export class MountainsScene extends Phaser.Scene {
   }
 
   handleAttack() {
-    if (Phaser.Input.Keyboard.JustDown(this.attackKey) && !this.attackCooldown) {
+    const attackPressed = Phaser.Input.Keyboard.JustDown(this.attackKey) || (this.virtualInput.attack && !this.attackCooldown);
+
+    if (attackPressed && !this.attackCooldown) {
       this.isAttacking = true;
       this.attackCooldown = true;
 
@@ -386,7 +399,7 @@ export class MountainsScene extends Phaser.Scene {
       this.enemies.getChildren().forEach((enemy) => {
         const e = enemy as Enemy;
         const distance = Phaser.Math.Distance.Between(this.soad.x, this.soad.y, e.x, e.y);
-        
+
         if (distance < ATTACK_RANGE + (e.isBoss ? 50 : 10)) {
           this.damageEnemy(e, e.isBoss ? 20 : 30);
         }
@@ -430,10 +443,10 @@ export class MountainsScene extends Phaser.Scene {
       if (enemy.isBoss) {
         this.bossDefeated = true;
         if (enemy.fireTimer) enemy.fireTimer.destroy();
-        
+
         // Dramatic boss death
         this.cameras.main.shake(500, 0.02);
-        
+
         this.game.events.emit('showDialogue', {
           dialogueKey: 'mountainsVictory',
           onComplete: () => {
@@ -441,7 +454,7 @@ export class MountainsScene extends Phaser.Scene {
           }
         });
       }
-      
+
       // Fire explosion effect for dragons
       for (let i = 0; i < 8; i++) {
         const spark = this.add.circle(
@@ -477,24 +490,24 @@ export class MountainsScene extends Phaser.Scene {
   updateEnemies() {
     this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy;
-      
+
       const distanceToSoad = Phaser.Math.Distance.Between(e.x, e.y, this.soad.x, this.soad.y);
       const distanceToGurbaaz = Phaser.Math.Distance.Between(e.x, e.y, this.gurbaaz.x, this.gurbaaz.y);
-      
+
       let targetX = this.soad.x;
       let targetY = this.soad.y;
-      
+
       if (distanceToGurbaaz < distanceToSoad) {
         targetX = this.gurbaaz.x;
         targetY = this.gurbaaz.y;
       }
 
       const distance = Math.min(distanceToSoad, distanceToGurbaaz);
-      
+
       // Dragons have longer aggro range
       const aggroRange = e.isBoss ? 400 : 250;
       const minDistance = e.isBoss ? 100 : 40;
-      
+
       if (distance < aggroRange && distance > minDistance) {
         const angle = Phaser.Math.Angle.Between(e.x, e.y, targetX, targetY);
         const speed = (e.isBoss ? ENEMY_SPEED * 0.5 : ENEMY_SPEED * 1.2) * (this.game.loop.delta / 1000);
@@ -522,8 +535,8 @@ export class MountainsScene extends Phaser.Scene {
       fireball.y += fireball.velocityY * delta;
 
       // Check bounds
-      if (fireball.x < -20 || fireball.x > GAME_WIDTH + 20 || 
-          fireball.y < -20 || fireball.y > GAME_HEIGHT + 20) {
+      if (fireball.x < -20 || fireball.x > GAME_WIDTH + 20 ||
+        fireball.y < -20 || fireball.y > GAME_HEIGHT + 20) {
         fireball.destroy();
         return;
       }
@@ -582,7 +595,7 @@ export class MountainsScene extends Phaser.Scene {
 
   updateGurbaaz() {
     const distance = Phaser.Math.Distance.Between(this.gurbaaz.x, this.gurbaaz.y, this.soad.x, this.soad.y);
-    
+
     if (distance > 50) {
       const angle = Phaser.Math.Angle.Between(this.gurbaaz.x, this.gurbaaz.y, this.soad.x, this.soad.y);
       const speed = PLAYER_SPEED * 0.8 * (this.game.loop.delta / 1000);

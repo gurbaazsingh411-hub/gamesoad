@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Heart, Shield } from 'lucide-react';
+import { Heart, Shield, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Sword } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface GameHUDProps {
   soadHealth: number;
@@ -85,6 +86,57 @@ export function GameHUD({ soadHealth, gurbaazHealth, maxHealth, currentScene = '
       >
         <span className={`font-pixel text-[10px] ${sceneInfo.color}`}>{sceneInfo.name}</span>
       </motion.div>
-    </div>
+
+
+      {/* Mobile Controls */}
+      <div className="fixed bottom-8 left-8 flex flex-col items-center gap-2 pointer-events-auto md:hidden">
+        <button
+          className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center active:bg-primary/50 border border-primary/30"
+          onPointerDown={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'up', pressed: true } }))}
+          onPointerUp={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'up', pressed: false } }))}
+          onPointerLeave={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'up', pressed: false } }))}
+        >
+          <ArrowUp className="w-6 h-6 text-white" />
+        </button>
+        <div className="flex gap-2">
+          <button
+            className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center active:bg-primary/50 border border-primary/30"
+            onPointerDown={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'left', pressed: true } }))}
+            onPointerUp={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'left', pressed: false } }))}
+            onPointerLeave={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'left', pressed: false } }))}
+          >
+            <ArrowLeft className="w-6 h-6 text-white" />
+          </button>
+          <button
+            className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center active:bg-primary/50 border border-primary/30"
+            onPointerDown={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'down', pressed: true } }))}
+            onPointerUp={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'down', pressed: false } }))}
+            onPointerLeave={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'down', pressed: false } }))}
+          >
+            <ArrowDown className="w-6 h-6 text-white" />
+          </button>
+          <button
+            className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center active:bg-primary/50 border border-primary/30"
+            onPointerDown={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'right', pressed: true } }))}
+            onPointerUp={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'right', pressed: false } }))}
+            onPointerLeave={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'right', pressed: false } }))}
+          >
+            <ArrowRight className="w-6 h-6 text-white" />
+          </button>
+        </div>
+      </div>
+
+      <div className="fixed bottom-8 right-8 pointer-events-auto md:hidden">
+        <button
+          className="w-16 h-16 bg-red-900/50 rounded-full flex items-center justify-center active:bg-red-600/50 border border-red-500/30"
+          onPointerDown={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'attack', pressed: true } }))}
+          onPointerUp={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'attack', pressed: false } }))}
+          onPointerLeave={() => window.dispatchEvent(new CustomEvent('game-input', { detail: { action: 'attack', pressed: false } }))}
+        >
+          <Sword className="w-8 h-8 text-white" />
+        </button>
+      </div>
+
+    </div >
   );
 }
